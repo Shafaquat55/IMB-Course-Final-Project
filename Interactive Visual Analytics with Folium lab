@@ -1,0 +1,200 @@
+import pandas as pd
+import numpy as np
+import folium
+from folium.plugins import MarkerCluster
+from folium.plugins import MousePosition
+from folium.features import DivIcon
+
+
+URL = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/spacex_launch_geo.csv"
+
+resp = requests.get(URL)
+text = io.StringIO(resp.text)  
+spacex_df = pd.read_csv(text)
+
+
+
+## Task 1: Mark all launch sites on a map
+
+spacex_df = spacex_df[['Launch Site', 'Lat', 'Long', 'class']]
+launch_sites_df = spacex_df.groupby(['Launch Site'], as_index=False).first()
+launch_sites_df = launch_sites_df[['Launch Site', 'Lat', 'Long']]
+launch_sites_df
+
+nasa_coordinate = [29.559684888503615, -95.0830971930759]
+site_map = folium.Map(location=nasa_coordinate, zoom_start=10)
+
+circle = folium.Circle(nasa_coordinate, radius=1000, color='#d35400', fill=True).add_child(folium.Popup('NASA Johnson Space Center'))
+marker = folium.map.Marker(
+    nasa_coordinate,
+    
+    icon=DivIcon(
+        icon_size=(20,20),
+        icon_anchor=(0,0),
+        html='<div style="font-size: 12; color:#d35400;"><b>%s</b></div>' % 'NASA JSC',
+        )
+    )
+site_map.add_child(circle)
+site_map.add_child(marker)
+
+
+
+# Task 2: Mark the success/failed launches for each site on the map
+
+site_map = folium.Map(location=nasa_coordinate, zoom_start=5)
+def add_circle():
+    site_location=launch_sites_df.values.tolist()
+    len(site_location)
+    for i in range(len(site_location)): 
+        #print (i)
+        circle = folium.Circle(location=[site_location[i][1],site_location[i][2]], radius=1000, color='#d35400', fill=True).add_child(folium.Popup(site_location[i][0]))
+        marker = folium.map.Marker(location=[site_location[i][1],site_location[i][2]],icon=DivIcon(icon_size=(20,20),icon_anchor=(0,0),
+        html='<div style="font-size: 12; color:#d35400;"><b>%s</b></div>' % site_location[i][0],
+            )
+          )
+        site_map.add_child(circle).add_child(marker)
+    return site_map
+
+add_circle()
+
+
+def assign_color(item):
+    if item==0:
+        return 'red'
+    else:
+        return 'green'
+    
+spacex_df['marker_color']=spacex_df['class'].apply(assign_color)
+
+
+
+marker_cluster = MarkerCluster()
+site_map.add_child(marker_cluster)
+spacex_df_list=spacex_df.values.tolist()
+for i, record in spacex_df.iterrows():
+    # TODO: Create and add a Marker cluster to the site map
+    # marker = folium.Marker(...)
+    marker = folium.map.Marker(location=[spacex_df_list[i][1],spacex_df_list[i][2]],icon=DivIcon(icon_size=(20,20),icon_anchor=(0,0),
+        html='<div style="font-size: 12; color:#d35400;"><b>%s</b></div>' % spacex_df_list[i][0],
+            )
+          )
+    marker_icon=folium.Icon(color=spacex_df_list[i][3])
+                                                                       
+    marker_cluster.add_child(marker).add_child(marker_icon)
+
+site_map
+
+
+
+
+# TASK 3: Calculate the distances between a launch site to its proximities
+
+
+formatter = "function(num) {return L.Util.formatNum(num, 5);};"
+mouse_position = MousePosition(
+    position='topright',
+    separator=' Long: ',
+    empty_string='NaN',
+    lng_first=False,
+    num_digits=20,
+    prefix='Lat:',
+    lat_formatter=formatter,
+    lng_formatter=formatter,
+)
+
+site_map.add_child(mouse_position)
+site_map
+
+from math import sin, cos, sqrt, atan2, radians
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    # approximate radius of earth in km
+    R = 6373.0
+
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance
+
+
+
+
+
+#Add distance marker
+
+lat_coastline=28.563866
+lon_coastline=-80.568261
+lat_site_LC40=28.562302
+lon_site_LC40 = -80.577356
+
+
+distance=calculate_distance(lat_coastline,lon_coasline,lat_site_LC40,lon_site_LC40)
+
+coordinate=[lat_coastline,lon_coastline]
+distance_marker = folium.Marker(
+  coordinate,
+   icon=DivIcon(
+   icon_size=(20,20),
+    icon_anchor=(0,0),
+    html='<div style="font-size: 12; color:#d35400;"><b>%s</b></div>' % "{:10.2f} KM".format(distance),
+   )
+    )
+
+site_map.add_child(distance_marker)
+
+
+
+#Add Line between launch site & CoastLine
+
+distance_coordinates=[[lat_coastline,lon_coasline],[lat_site_LC40,lon_site_LC40]]
+lines=folium.PolyLine(locations=distance_coordinates, weight=1)
+site_map.add_child(lines)
+
+
+
+
+#Distance Marker & distance line to airport
+
+lat_airport=28.602735
+lon_airport=-80.6844651
+lat_site_LC40=28.562302
+lon_site_LC40 = -80.577356
+
+
+distance=calculate_distance(lat_airport,lon_airport,lat_site_LC40,lon_site_LC40)
+
+coordinate=[lat_airport,lon_airport]
+distance_marker = folium.Marker(
+  coordinate,
+   icon=DivIcon(
+   icon_size=(20,20),
+    icon_anchor=(0,0),
+    html='<div style="font-size: 12; color:#d35400;"><b>%s</b></div>' % "{:10.2f} KM".format(distance),
+   )
+    )
+
+site_map.add_child(distance_marker)
+
+
+
+#Add Line between launch site & CoastLine
+
+distance_coordinates=[[lat_airport,lon_airport],[lat_site_LC40,lon_site_LC40]]
+lines=folium.PolyLine(locations=distance_coordinates, weight=1)
+site_map.add_child(lines)
+
+
+
+
+
+Are all launch sites in proximity to the Equator line?-----NO
+Are all launch sites in very close proximity to the coast?---Yes
