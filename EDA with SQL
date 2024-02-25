@@ -1,0 +1,87 @@
+import pandas as pd
+import csv, sqlite3
+
+
+con = sqlite3.connect("my_data1.db")
+cur = con.cursor()
+
+df = pd.read_csv("https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/labs/module_2/data/Spacex.csv")
+df.to_sql("SPACEXTBL", con, if_exists='replace', index=False,method="multi")
+
+
+
+#TASK1: Display the names of the unique launch sites in the space mission
+
+query="SELECT DISTINCT Launch_Site from SPACEXTBL "
+df=pd.read_sql(query,con)
+df
+
+
+#TASK2:Display 5 records where launch sites begin with the string 'CCA'
+
+query="SELECT * from SPACEXTBL WHERE Launch_Site LIKE 'CCA%' LIMIT 5"
+df=pd.read_sql(query,con)
+df
+
+
+#TASK3:Display the total payload mass carried by boosters launched by NASA (CRS)
+
+query="SELECT sum(PAYLOAD_MASS__KG_)   from SPACEXTBL WHERE  Customer='NASA (CRS)'"
+df=pd.read_sql(query,con)
+df
+
+
+#TASK4:Display average payload mass carried by booster version F9 v1.1
+
+query="SELECT avg(PAYLOAD_MASS__KG_)  from SPACEXTBL WHERE  Booster_Version='F9 v1.1'"
+df=pd.read_sql(query,con)
+df
+
+
+
+#TASK5:List the date when the first succesful landing outcome in ground pad was acheived
+
+query="SELECT min(Date) AS Landing_Date,Landing_Outcome  from SPACEXTBL WHERE  Landing_Outcome='Success (ground pad)'"
+df=pd.read_sql(query,con)
+df
+
+
+
+
+#TASK6:List the names of the boosters which have success in drone ship and have payload mass greater than 4000 but less than 6000
+
+query="SELECT DISTINCT Booster_Version ,PAYLOAD_MASS__KG_ ,Landing_Outcome  from SPACEXTBL WHERE  PAYLOAD_MASS__KG_ BETWEEN 4000 AND 6000 AND Landing_Outcome='Success (drone ship)'"
+df=pd.read_sql(query,con)
+df
+
+
+#TASK7:List the total number of successful and failure mission outcomes
+
+query="SELECT Mission_Outcome,count(Mission_Outcome)  from SPACEXTBL GROUP BY trim(Mission_Outcome)"
+df=pd.read_sql(query,con)
+df
+
+
+
+#TASK8:List the names of the booster_versions which have carried the maximum payload mass. Use a subquery
+
+query="SELECT  Booster_Version ,PAYLOAD_MASS__KG_  from SPACEXTBL WHERE PAYLOAD_MASS__KG_=(SELECT max(PAYLOAD_MASS__KG_) from SPACEXTBL)"
+df=pd.read_sql(query,con)
+df
+
+
+
+
+#TASK9:List the records which will display the month names, failure landing_outcomes in drone ship ,booster versions, launch_site for the months in year 2015
+
+query="SELECT substr(Date,6,2) as Month,Launch_Site,Booster_Version,Landing_Outcome  from SPACEXTBL WHERE  Landing_Outcome='Failure (drone ship)' AND substr(Date,0,5)='2015'"
+df=pd.read_sql(query,con)
+df
+
+
+
+#TASK10:Rank the count of landing outcomes (such as Failure (drone ship) or Success (ground pad)) between the date 2010-06-04 and 2017-03-20, in descending orde
+
+query="SELECT Landing_Outcome,count(Landing_Outcome)  from SPACEXTBL WHERE  Landing_Outcome='Failure (drone ship)' OR Landing_Outcome='Success (ground pad)'  GROUP BY Landing_Outcome "
+df=pd.read_sql(query,con)
+df
