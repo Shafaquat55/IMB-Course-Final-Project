@@ -1,0 +1,93 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import requests
+import io
+
+URL = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/dataset_part_2.csv"
+
+resp = requests.get(URL)
+text = io.StringIO(resp.text)  
+df = pd.read_csv(text)
+
+
+sns.catplot(y="PayloadMass", x="FlightNumber", hue="Class", data=df, aspect = 3)
+plt.xlabel("Flight Number",fontsize=20)
+plt.ylabel("Pay load Mass (kg)",fontsize=20)
+plt.show()
+
+
+
+
+
+### TASK 1: Visualize the relationship between Flight Number and Launch Site
+
+sns.catplot(y="LaunchSite", x="FlightNumber", hue="Class", data=df, aspect = 3)
+plt.xlabel("Flight Number",fontsize=20)
+plt.ylabel("LaunchSite",fontsize=20)
+plt.show()
+
+
+
+
+### TASK 2: Visualize the relationship between Payload and Launch Site
+
+sns.catplot(y="LaunchSite", x="PayloadMass", hue="Class", data=df, aspect = 3)
+plt.xlabel("Pay Load (kg)",fontsize=20)
+plt.ylabel("LaunchSite",fontsize=20)
+plt.show()
+
+
+
+
+### TASK  3: Visualize the relationship between success rate of each orbit type
+
+df_orbit_success.plot(kind='bar')
+plt.xlabel("Orbit",fontsize=10)
+plt.ylabel("Success Rate",fontsize=10)
+plt.show()
+
+
+
+### TASK  4: Visualize the relationship between FlightNumber and Orbit type
+
+sns.catplot(y="Orbit", x="FlightNumber", hue="Class", data=df, aspect = 3)
+plt.xlabel("Flight Number",fontsize=20)
+plt.ylabel("Orbit",fontsize=20)
+plt.show()
+
+
+
+### TASK  5: Visualize the relationship between Payload and Orbit type
+
+sns.catplot(y="Orbit", x="PayloadMass", hue="Class", data=df, aspect = 3)
+plt.xlabel("Pay Load (kg)",fontsize=20)
+plt.ylabel("Orbit",fontsize=20)
+plt.show()
+
+
+
+### TASK  6: Visualize the launch success yearly trend
+
+year=[]
+def Extract_year():
+    for i in df["Date"]:
+        year.append(i.split("-")[0])
+    return year
+Extract_year()
+df['Date'] = year
+#Contine
+sns.lineplot(y="Class", x="Date", data=df)
+plt.xlabel("Year",fontsize=20)
+plt.ylabel("Success Rate",fontsize=20)
+plt.show()
+
+
+
+### TASK  7: Create dummy variables to categorical columns
+
+features = df[['FlightNumber', 'PayloadMass', 'Orbit', 'LaunchSite', 'Flights', 'GridFins', 'Reused', 'Legs', 'LandingPad', 'Block', 'ReusedCount', 'Serial']]
+#features=features.reindex(columns=['Orbits','LaunchSite','LandingPad','Serial'])
+features_one_hot=pd.get_dummies(features)
+features_one_hot.to_csv('dataset_part_3.csv', index=False)
